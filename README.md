@@ -132,3 +132,113 @@ plt.show()
 # Close the database connection
 conn.close()
 #Saved as visualize_books.py
+import tkinter as tk
+from tkinter import messagebox, ttk
+from tkinter import PhotoImage
+import sqlite3
+import requests
+import time
+
+# Function to get publication date using Open Library API
+def get_publication_date(title):
+    url = f'https://openlibrary.org/search.json?title={title}'
+    response = requests.get(url)
+    data = response.json()
+
+    if 'docs' in data and data['docs']:
+        first_result = data['docs'][0]
+        publication_date = first_result.get('first_publish_year', 'Unknown')
+        return publication_date
+    return 'Unknown'
+
+# Function to update the database with the publication date
+def update_publication_dates():
+    conn = sqlite3.connect('books.db')
+    cursor = conn.cursor()
+
+    cursor.execute("SELECT id, title FROM books WHERE publication_date IS NULL")
+    books = cursor.fetchall()
+
+    for book in books:
+        book_id = book[0]
+        title = book[1]
+
+        publication_date = get_publication_date(title)
+        print(f"Updating book ID {book_id} with publication date: {publication_date}")
+
+        cursor.execute("UPDATE books SET publication_date = ? WHERE id = ?", (publication_date, book_id))
+        conn.commit()
+
+        time.sleep(1)  # 1 second delay
+
+    conn.close()
+    messagebox.showinfo("Success", "All publication dates have been updated successfully.")
+
+# ToolTip Class for displaying helpful hints
+class ToolTip:
+    def __init__(self, widget, text):
+        self.widget = widget
+        self.text = text
+        self.tooltip = None
+        self.widget.bind("<Enter>", self.show_tooltip)
+        self.widget.bind("<Leave>", self.hide_tooltip)
+
+    def show_tooltip(self, event):
+        x, y, _, _ = self.widget.bbox("insert")
+        x += self.widget.winfo_rootx() + 25
+        y += self.widget.winfo_rooty() + 25
+        self.tooltip = tk.Toplevel(self.widget)
+        self.tooltip.wm_overrideredirect(True)
+        self.tooltip.wm_geometry(f"+{x}+{y}")
+        label = tk.Label(self.tooltip, text=self.text, background="yellow", relief="solid")
+        label.pack()
+
+    def hide_tooltip(self, event):
+        if self.tooltip:
+            self.tooltip.destroy()
+            self.tooltip = None
+
+# Function to create and enhance the UI/UX layout
+def create_ui():
+    # Create main window
+    root = tk.Tk()
+    root.title("Book Database UI")
+    root.geometry("600x400")
+    
+    # Create frames for different sections
+    frame1 = tk.Frame(root, padx=10, pady=10)
+    frame1.pack(padx=10, pady=10)
+
+    frame2 = tk.Frame(root, padx=10, pady=10)
+    frame2.pack(padx=10, pady=10)
+
+    # Add labels and inputs for filters (example: Min Price)
+    min_price_label = tk.Label(frame1, text="Min Price:")
+    min_price_label.grid(row=0, column=0, padx=5, pady=5, sticky="w")
+    min_price_input = tk.Entry(frame1)
+    min_price_input.grid(row=0, column=1, padx=5, pady=5)
+
+    # Add ToolTip to input field
+    ToolTip(min_price_label, "Enter the minimum price to filter books.")
+
+    # Add 'Fetch Data' button
+    fetch_button = tk.Button(frame2, text="Fetch Data", command=update_publication_dates)
+    fetch_button.grid(row=0, column=0, columnspan=2, pady=10)
+
+    # Add ToolTip to the button
+    ToolTip(fetch_button, "Click to update the publication dates of books.")
+
+    # Add a success message on completion
+    success_label = tk.Label(frame2, text="Ready to update books!", fg="green", font=("Arial", 12))
+    success_label.grid(row=1, column=0, columnspan=2, pady=10)
+
+    # Visual Enhancements
+    fetch_button.config(font=("Arial", 12, "bold"), fg="white", bg="blue")
+    
+    # Run the UI main loop
+    root.mainloop()
+
+# Run the function to create UI
+if __name__ == "__main__":
+    create_ui()
+A
