@@ -1,5 +1,5 @@
 # Project one: NEDA : osint-tool
-OSINT investigation tool designed to simplify the process of gathering and analyzing publicly available information
+ NEDA is an OSINT investigation tool designed to simplify the process of gathering and analyzing publicly available information
 import requests
 from bs4 import BeautifulSoup
 import sqlite3
